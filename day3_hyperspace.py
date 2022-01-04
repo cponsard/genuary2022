@@ -4,6 +4,8 @@ Hyperspace ride by C. Ponsard
 loosely based on  Silveira Neto <me@silveiraneto.net>
 http://silveiraneto.net/2009/08/12/pygame-simple-space-effect/
 Free under the terms of GPLv3 license
+
+Run and press space to start the ride
 """
 
 import os, sys, random
