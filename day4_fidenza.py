@@ -13,10 +13,10 @@ import math
 
 # Constants
 SCREEN_W, SCREEN_H = (800, 600)
-XMIN=-10.0
-XMAX=10.0
-YMIN=-10.0
-YMAX=10.0
+XMIN=0.0
+XMAX=5.0
+YMIN=0.0
+YMAX=5.0
 RX=XMAX-XMIN
 RY=YMAX-YMIN
 N = 50
@@ -36,11 +36,12 @@ def in_screen(x,y):
     if y>=SCREEN_H: return False
     return True
 
+# the encoded field is the predator-prey model
 def field_value(x,y):
-    dx = x-y
-    dy = x+y
+    dx = 2*x-1.2*x*y    #x-y
+    dy = 0.9*x*y-y              #x+y
     lg = math.sqrt(dx*dx+dy*dy)
-    return (x-y,x+y,lg)
+    return (dx,dy,lg)
 
 def conv(x,y):
     return(int((x-XMIN)/RX*SCREEN_W),int((y-YMIN)/RY*SCREEN_H))
@@ -51,6 +52,7 @@ def create_empty_field(screen):
     field.fill((255, 255, 255))
     return field
 
+# just for debugging to see the field
 def create_vector_field(screen,n,m):
     field = pygame.Surface(screen.get_size())
     field = field.convert()
@@ -88,10 +90,11 @@ def main():
     cnx = 0
     cny = 0
     col = (0,0,0)
+    start = False
 
     clock = pygame.time.Clock()
     while 1:
-        clock.tick(200)
+        clock.tick(1000)
         i = i + 1
 
         for event in pygame.event.get():
@@ -102,6 +105,12 @@ def main():
             elif event.type == KEYDOWN and event.key == K_SPACE:
                 start = True
 
+        if not start:
+            screen.blit(field, (0, 0))
+            pygame.display.flip()
+            continue
+
+        # selecting a random starting point
         if n == 0:
             cx = random.uniform(XMIN,XMAX)
             cy = random.uniform(YMIN,YMAX)
@@ -114,6 +123,7 @@ def main():
         else:
             n = n-1
 
+        # precalculating next point (useful to probe)
         dx, dy, lg = field_value(cx,cy)
         f = step/lg
         cnx = cx + dx*f
@@ -121,11 +131,14 @@ def main():
 
         p=conv(cx,cy)
         pn=conv(cnx,cny)
+
+        # checking if we are going out of screen
         if not in_screen(pn[0],pn[1]):
             n = 0
         else:
+            # cheching if some collision (relaxed to avoid point lines)
             cr,cg,cb,ca = field.get_at(pn)
-            if cr<255 or cg<255 or cb<255:
+            if (cr<255 or cg<255 or cb<255) and (n<20):
                 n = 0
 
         # draw at the end
@@ -135,6 +148,7 @@ def main():
         cx=cnx
         cy=cny
 
+        # update screen
         screen.blit(field, (0, 0))
         pygame.display.flip()
 
