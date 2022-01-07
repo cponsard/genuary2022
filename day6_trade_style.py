@@ -11,13 +11,57 @@ from pygame.locals import *
 # Constants
 N = 10
 SCREEN_W, SCREEN_H = (800, 800)
+GHOSTS = []
 
-def in_screen(x,y):
-    if x<-200: return False
-    if y<-200: return False
-    if x>SCREEN_W+200: return False
-    if y>SCREEN_H+200: return False
-    return True
+class Ghost():
+    """ Breakout Sprite class that extends following classes
+
+        Attributes:
+            image_file (str): Sprite-image filename.
+    """
+
+    type = 0
+    px = SCREEN_W//2
+    py = SCREEN_H//2
+    dx = 0
+    dy = 0
+    w = 0
+    h = 0
+    z = 1.0
+    img = None
+
+    def __init__(self, type):
+        self.type = type
+        self.z = random.uniform(0.15,0.85)
+        self.img = pygame.transform.rotozoom(GHOSTS[self.type],0.0, self.z)
+        self.random_pos()
+        self.random_speed()
+
+    def random_pos(self):
+        self.px = random.randint(0,SCREEN_W-self.img.get_width())
+        self.py = random.randint(0,SCREEN_H-self.img.get_height())
+
+    def random_speed(self):
+        self.dx = random.uniform(0.5,2)
+        self.dy = random.uniform(0.5,2)
+
+    def draw(self, screen):
+        screen.blit(self.img, (int(self.px), int(self.py)))
+
+    def update(self):
+        self.px = self.px+self.dx
+        self.py = self.py+self.dy
+        if (self.px<0) or (self.px>SCREEN_W-self.img.get_width()):
+            self.dx = -self.dx
+        if (self.py<0) or (self.py>SCREEN_H-self.img.get_height()):
+            self.dy = -self.dy
+
+    def in_screen(self):
+        if self.px<-0: return False
+        if self.py<-0: return False
+        if self.px>SCREEN_W-self.img.get_width(): return False
+        if self.py>SCREEN_H-self.img.get_height(): return False
+        return True
 
 def main():
     # basic start
@@ -29,16 +73,21 @@ def main():
     background = pygame.Surface(screen.get_size())
     background = background.convert()
 
+    # load ghosts types
+    GHOSTS.append(pygame.image.load('day6_blinky.png').convert_alpha())
+    GHOSTS.append(pygame.image.load('day6_clyde.png').convert_alpha())
+    GHOSTS.append(pygame.image.load('day6_inky.png').convert_alpha())
+    GHOSTS.append(pygame.image.load('day6_pinky.png').convert_alpha())
+    GHOSTS.append(pygame.image.load('day6_afraid.png').convert_alpha())
+
     mask = pygame.image.load('day6_mask.png').convert_alpha()
     ghosts = []
-    ghosts.append(pygame.image.load('day6_blinky.png').convert_alpha())
-    ghosts.append(pygame.image.load('day6_clyde.png').convert_alpha())
-    ghosts.append(pygame.image.load('day6_inky.png').convert_alpha())
-    ghosts.append(pygame.image.load('day6_pinky.png').convert_alpha())
+    for i in range(N):
+        ghosts.append(Ghost(i % len(GHOSTS))) #random.randint(0, len(GHOSTS)-1)
 
     clock = pygame.time.Clock()
     while 1:
-        clock.tick(1)
+        clock.tick(40)
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -49,13 +98,9 @@ def main():
         background.fill((0, 0, 0))
         screen.blit(background, (0, 0))
 
-        for i in range(4):
-            g = ghosts[i]
-            w = g.get_width()
-            h = g.get_height()
-            x = random.randint(0,SCREEN_W-w)
-            y = random.randint(0,SCREEN_H-h)
-            screen.blit(g,(x,y))
+        for i in range(N):
+            ghosts[i].draw(screen)
+            ghosts[i].update()
 
         screen.blit(mask, (0,0))
         pygame.display.flip()
