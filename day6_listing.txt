@@ -1,0 +1,165 @@
+Refresh         =       450     ; rate in Hz
+
+        ldx     #<NMI           ; instal NMI vec
+        ldy     #>NMI
+        stx     vcNMI
+        sty     vcNMI+1
+        lda     #$40            ; NMI is off
+        sta     InUse
+
+Again
+        lda     #0
+        sta     Flag
+        sta     Ticks           ; init counter
+        sta     Ticks+1
+        sta     Ticks+2
+        sta     Ticks+3
+        lda     #$FE            ; init NMI
+        sta     Timer
+        lda     #$FF
+        sta     Timer+1
+        lda     InUse           ; turn on NMI
+        and     #$BF
+        sta     rgConfig
+        sta     InUse
+
+-       bit     Flag            ; waiting
+        bpl     -
+        lda     #0
+        sta     Flag
+
+-       bit     Flag            ; waiting TZP
+        bpl     -
+        lda     #0
+        sta     Flag
+
+Main                            ; main cycle
+;                          v   v
+        lda     Ticks     ;4
+        clc               ;2   6
+        sed               ;2   8
+        adc     #$53      ;2  10
+        sta     Ticks     ;4  14
+        lda     Ticks+1   ;4  18
+        adc     #0        ;2  20
+        sta     Ticks+1   ;4  24
+        lda     Ticks+2   ;4  28
+        adc     #0        ;2  30
+        sta     Ticks+2   ;4  34
+        lda     Ticks+3   ;4  38
+        adc     #0        ;2  40
+        sta     Ticks+3   ;4  44
+        cld               ;2  46
+        bit     Flag      ;4  50
+        bpl     Main      ;3  53
+
+        lda     #0        ;2
+        sta     Flag      ;4   6
+        lda     Ticks     ;4  10
+        clc               ;2  12
+        sed               ;2  14
+        adc     #$95      ;2  16
+        sta     Ticks     ;4  20
+        lda     Ticks+1   ;4  24
+        adc     #0        ;2  26
+        sta     Ticks+1   ;4  30
+        lda     Ticks+2   ;4  34
+        adc     #0        ;2  36
+        sta     Ticks+2   ;4  40
+        lda     Ticks+3   ;4  44
+        adc     #0        ;2  46
+        sta     Ticks+3   ;4  50
+        cld               ;2  52
+        lda     Timer     ;4  56
+        cmp     #<Refresh ;2  58
+        bne     Main      ;3  61 + 34 = 95
+        lda     Timer+1   ; 4
+        cmp     #>Refresh ; 2
+        bne     Main      ; 3
+
+        lda     InUse     ; turn off NMI
+        ora     #$40
+        sta     rgConfig
+        sta     InUse
+
+        ldx     #0        ; send tohost
+-       lda     Mes1,x
+        beq     +
+        jsr     Send
+        inx
+        jmp     -
+
++       lda     Ticks+3
+        pha
+        lsr
+        lsr
+        lsr
+        lsr
+        beq     +               ; delete NSZ
+        jsr     PrintDigit
++       pla
+        and     #15
+        jsr     PrintDigit
+        lda     #"."            ; dec. point
+        jsr     Send
+        lda     Ticks+2
+        jsr     PrintTwoDigits
+        lda     Ticks+1
+        jsr     PrintTwoDigits
+        lda     Ticks
+        jsr     PrintTwoDigits
+
+        ldx     #0              ; send to host
+-       lda     Mes2,x
+        beq     +
+        jsr     Send
+        inx
+        jmp     -
++       jmp     Again           ; repeat
+
+PrintTwoDigits
+        pha
+        lsr
+        lsr
+        lsr
+        lsr
+        jsr     PrintDigit
+        pla
+        and     #15
+        jsr     PrintDigit
+        rts
+
+PrintDigit
+        ora     #$30
+        jsr     Send
+        rts
+
+Send
+        bit     rgStatus
+        bvc     Send
+        sta     rgTxD
+        rts
+
+Mes1
+        .db     13
+        .tx     "Current clock freq "
+        .db     0
+
+Mes2
+        .tx     " MHz"
+        .db     0
+
+Ticks   .br     4,0
+Timer   .br     2,0
+InUse   .db     0
+Flag    .db     0
+
+NMI                        ;6
+        pha                ;3   9
+        inc     Timer      ;6  15
+        bne     +          ;3  18
+        inc     Timer+1    ; 5
++       lda     #$80       ;2  20
+        sta     Flag       ;4  24
+        pla                ;4  28
+        rti                ;6  34
