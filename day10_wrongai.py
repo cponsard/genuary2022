@@ -29,7 +29,7 @@ def fast_filter(surface):
     rgbarray = surfarray.array3d(surface)
     redimg = N.array(rgbarray)
     redimg[:,:,1:] = 0
-    redimg[:, :, :] += redimg[:, :, :]//2
+#    redimg[:, :, :] += redimg[:, :, :]//2  # to boost image if low light
     return redimg
 
 def print_listing(screen,listing, font, d, n):
