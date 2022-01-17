@@ -52,7 +52,7 @@ def main():
     # basic start
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption('Genuary2022 - DAY17 - 3 Colors by C.Ponsard - PRESS SPACE for new Sol Lewitt')
+    pygame.display.set_caption('Genuary2022 - DAY17 - 3 Colors by C.Ponsard')
 
     clock = pygame.time.Clock()
     sky = generate_sky(screen, SKY)
