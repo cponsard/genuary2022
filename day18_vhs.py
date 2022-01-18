@@ -12,11 +12,11 @@ from pygame.locals import *
 SCREEN_W, SCREEN_H = (600, 800)
 
 N = 500
-NC = 9
+NC = 7
 NL = 60
-BC = 1
+BC = 2
 BL = 5
-SC = 2
+SC = 4
 SL = 4
 
 def fill(tab,col,l1,l2):
@@ -45,18 +45,20 @@ def init_tab():
 # TODO avoid previous move
 def random_empty(tab):
     while True:
-        l = BL+random.randint(0,NL-1)
-        c = BC+random.randint(0,NC-1)
+        l = random.randint(0,2*BL+NL-1)
+        c = random.randint(0,2*BC+NC-1)
         if not tab[l][c]:
             return (l,c)
 
 def get_borders(tab,p):
     res = []
     (l,c) = p
-    if tab[l-1][c]: res.append((l-1,c))
-    if tab[l+1][c]: res.append((l+1,c))
-    if tab[l][c-1]: res.append((l,c-1))
-    if tab[l][c+1]: res.append((l,c+1))
+    ML=2*BL+NL-1
+    MC=2*BC+NC-1
+    if l>0 and tab[l-1][c]: res.append((l-1,c))
+    if l<ML and tab[l+1][c]: res.append((l+1,c))
+    if c>0 and tab[l][c-1]: res.append((l,c-1))
+    if c<MC and tab[l][c+1]: res.append((l,c+1))
     return res
 
 def random_move(tab):
@@ -99,7 +101,7 @@ def generate_eraser(vhs):
     img.fill((0,0,0))
     return img
 
-def generate_poster(screen, tab, vhs, eraser):
+def generate_poster(screen, tab, vhs, eraser, font):
     img = pygame.Surface(screen.get_size())
     img = img.convert()
     img.fill((0,0,0))
@@ -108,20 +110,37 @@ def generate_poster(screen, tab, vhs, eraser):
 #    print(str(W)+" "+str(H))
     for i in range(NL+2*BL):
         for j in range(NC+2*BC):
-            print(str(j*W) + " " + str(i*H))
+#            print(str(j*W) + " " + str(i*H))
             if tab[i][j]:
-                img.blit(vhs,(j*W,i*H))
+                img.blit(vhs,(SC+j*W,i*H))
             else:
-                img.blit(eraser,(j*W,i*H))
+                img.blit(eraser,(SC+j*W,i*H))
+
+    text = font.render("V/H/S", False, (230, 0, 0))
+    img.blit(text, (142,H*NL+70))
+
     return img
 
 def update_poster(poster, move, vhs, eraser):
     (p1,p2) = move
     W = vhs.get_width()+SC
     H = vhs.get_height()+SL
-    poster.blit(eraser, (p1[1] * W, p1[0] * H))
-    poster.blit(vhs, (p2[1] * W, p2[0] * H))
+    poster.blit(eraser, (SC+p1[1] * W, p1[0] * H))
+    poster.blit(vhs, (SC+p2[1] * W, p2[0] * H))
     return
+
+def vhs_filter(source):
+    dest = pygame.Surface.copy(source)
+    w, h = source.get_size()
+    for i in range(10):
+        l = random.randint(0,h-10)
+        nl = random.randint(4,8)
+        dx = random.randint(4,8)
+        for j in range(nl):
+            y = l+j
+            for x in range(w-dx):
+                dest.set_at((x+dx, y), source.get_at((x, y)))
+    return dest
 
 def main():
     # basic start
@@ -135,9 +154,10 @@ def main():
     moves = mix_tab(tab)
     print_tab(tab)
     vhs = pygame.image.load('day18_vhs01.png').convert_alpha()
-    vhs = pygame.transform.rotozoom(vhs, 0.0, SCREEN_W/(vhs.get_width()*(NC+BC*2)))
+    vhs = pygame.transform.rotozoom(vhs, 0.0, SCREEN_W/(vhs.get_width()*(NC+BC*2+1)))
     eraser = generate_eraser(vhs)
-    poster = generate_poster(screen, tab, vhs, eraser)
+    font = pygame.font.SysFont('Courrier New', 175)
+    poster = generate_poster(screen, tab, vhs, eraser, font)
 
     i = N-1
     start = True
@@ -162,7 +182,8 @@ def main():
         if i >= 0:
             unmove(tab, moves[i])
             update_poster(poster, moves[i], vhs, eraser)
-            screen.blit(poster, (0, 0))
+            vhs_poster=vhs_filter(poster)
+            screen.blit(vhs_poster, (0, 0))
             pygame.display.flip()
             i -= 1
 
